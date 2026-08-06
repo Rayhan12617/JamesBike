@@ -233,7 +233,7 @@
                 if (e.code === 'Space') isNitroActive = false;
             });
 
-            // Relative Swipe/Drag Steering (ডানে সোয়াইপ করলে বাইক ডানে যাবে, বামে সোয়াইপ করলে বামে যাবে)
+            // সঠিক ডিরেকশন: ডানে সোয়াইপ করলে ডানে, বামে সোয়াইপ করলে বামে যাবে (-) মাইনাস চিহ্ন দিয়ে দিক ঠিক করা হয়েছে
             container.addEventListener('pointerdown', e => {
                 isTouching = true;
                 lastClientX = e.clientX;
@@ -256,8 +256,8 @@
                 const deltaX = e.clientX - lastClientX;
                 lastClientX = e.clientX;
 
-                // ড্রাগ ডিরেকশন অনুযায়ী পজিশন আপডেট (ডানে টানলে ডানে, বামে টানলে বামে)
-                touchTargetX += deltaX * 0.03;
+                // ডেল্টা নেগেটিভ করা হয়েছে যাতে ডানে টানলে পজিটিভ এবং বামে টানলে নেগেটিভ হয়
+                touchTargetX -= deltaX * 0.03;
                 touchTargetX = Math.max(-6.5, Math.min(6.5, touchTargetX));
             });
 
@@ -291,23 +291,25 @@
         }
 
         function spawnTraffic() {
-            if (Math.random() < 0.03 && trafficCars.length < 6 && bikeMesh) {
+            // গাড়ির সংখ্যা কমানো হয়েছে এবং জেনারেট রেট সহজ করা হয়েছে (Easy Mode)
+            if (Math.random() < 0.015 && trafficCars.length < 4 && bikeMesh) {
                 const carGeo = new THREE.BoxGeometry(1.8, 1.2, 3.5);
                 const carMat = new THREE.MeshStandardMaterial({ color: 0xff3366 });
                 const car = new THREE.Mesh(carGeo, carMat);
-                const laneX = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 5);
-                car.position.set(laneX, 0.6, bikeMesh.position.z + 120);
+                const laneX = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 4);
+                car.position.set(laneX, 0.6, bikeMesh.position.z + 140);
                 scene.add(car);
                 trafficCars.push(car);
             }
 
-            if (Math.random() < 0.04 && bikeMesh) {
-                const coinGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
+            // কয়েন বেশি দেওয়া হয়েছে সহজে খেলার জন্য
+            if (Math.random() < 0.06 && bikeMesh) {
+                const coinGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.1, 16);
                 const coinMat = new THREE.MeshBasicMaterial({ color: 0xC5FF3D });
                 const coin = new THREE.Mesh(coinGeo, coinMat);
                 coin.rotation.x = Math.PI / 2;
-                const laneX = (Math.random() - 0.5) * 10;
-                coin.position.set(laneX, 0.8, bikeMesh.position.z + 120);
+                const laneX = (Math.random() - 0.5) * 8;
+                coin.position.set(laneX, 0.8, bikeMesh.position.z + 140);
                 scene.add(coin);
                 coinObjects.push(coin);
             }
@@ -316,10 +318,11 @@
         function updateGame() {
             if (!gameRunning || !bikeMesh) return;
 
-            let targetSpeed = 120;
+            // স্পিড একটু কমানো হয়েছে যাতে গেম অনেক সহজ হয় (Easy Mode)
+            let targetSpeed = 95;
             if (isNitroActive && nitroVal > 0) {
-                targetSpeed = 220;
-                nitroVal -= 0.5;
+                targetSpeed = 160;
+                nitroVal -= 0.3;
             }
 
             speedKMH += (targetSpeed - speedKMH) * 0.05;
@@ -327,7 +330,7 @@
 
             bikeMesh.position.z += forwardSpeed;
             distance += Math.floor(forwardSpeed * 10);
-            fuelVal -= 0.005;
+            fuelVal -= 0.002; // ফুয়েল খরচ কমানো হয়েছে
 
             // Direct touch positioning interpolation or keyboard override
             if (isTouching) {
@@ -348,7 +351,7 @@
 
             spawnTraffic();
 
-            // Collision check with traffic
+            // Collision check with traffic (হিটবক্স আরও একটু ছোট করা হয়েছে যাতে ক্র্যাশ না করে সহজে পার পাওয়া যায়)
             for (let i = trafficCars.length - 1; i >= 0; i--) {
                 const car = trafficCars[i];
                 if (car && car.position.z < bikeMesh.position.z - 20) {
@@ -356,7 +359,7 @@
                     trafficCars.splice(i, 1);
                     continue;
                 }
-                if (car && bikeMesh.position.distanceTo(car.position) < 2.0) {
+                if (car && bikeMesh.position.distanceTo(car.position) < 1.6) {
                     gameOver();
                 }
             }
@@ -369,7 +372,7 @@
                     coinObjects.splice(i, 1);
                     continue;
                 }
-                if (coin && bikeMesh.position.distanceTo(coin.position) < 1.8) {
+                if (coin && bikeMesh.position.distanceTo(coin.position) < 2.0) {
                     coinsCollected += 1;
                     scene.remove(coin);
                     coinObjects.splice(i, 1);
