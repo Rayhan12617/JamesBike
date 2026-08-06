@@ -51,13 +51,6 @@
             box-shadow: 0 0 25px rgba(197, 255, 61, 0.5);
             border: 1px solid rgba(197, 255, 61, 0.3);
         }
-
-        button {
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-            touch-action: manipulation;
-        }
     </style>
 </head>
 <body class="bg-monadBgDark text-white flex flex-col justify-between h-full w-full">
@@ -74,9 +67,9 @@
         </div>
     </header>
 
-    <!-- Main Game Viewport (3D Canvas) -->
+    <!-- Main Game Viewport (3D Canvas + Direct Touch Control Area) -->
     <main class="flex-1 flex flex-col items-center justify-center p-2 relative overflow-hidden w-full max-w-5xl mx-auto">
-        <div class="w-full h-full max-h-[78vh] bg-monadBgMid rounded-2xl neon-box-purple p-2 relative flex flex-col justify-between overflow-hidden">
+        <div class="w-full h-full max-h-[85vh] bg-monadBgMid rounded-2xl neon-box-purple p-2 relative flex flex-col justify-between overflow-hidden">
             
             <!-- HUD Top Bar -->
             <div class="grid grid-cols-4 gap-2 bg-monadBgDark/80 p-2 rounded-xl border border-primary/20 text-[10px] sm:text-xs font-mono text-center shrink-0 z-20">
@@ -86,15 +79,20 @@
                 <div><span class="text-gray-400 block text-[9px]">COINS</span><span id="hud-coins" class="text-secondary font-bold">🪙 0</span></div>
             </div>
 
-            <!-- Three.js Canvas Container -->
-            <div id="canvas-container" class="relative flex-1 w-full my-2 bg-black rounded-xl overflow-hidden border border-primary/30 flex items-center justify-center">
+            <!-- Three.js Canvas Container (Touch anywhere to steer/control) -->
+            <div id="canvas-container" class="relative flex-1 w-full my-2 bg-black rounded-xl overflow-hidden border border-primary/30 flex items-center justify-center cursor-crosshair">
                 
+                <!-- Touch Hint Overlay (Fades out when playing) -->
+                <div id="touch-hint" class="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none bg-black/60 backdrop-blur-sm px-4 py-1.5 rounded-full border border-secondary/30 text-[10px] font-mono text-secondary z-20 transition-opacity duration-500">
+                    Touch & Drag to Steer • Double Tap for Nitro
+                </div>
+
                 <!-- Start Overlay -->
                 <div id="start-overlay" class="absolute inset-0 bg-monadBgDark/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 z-30">
                     <img src="https://i.imgur.com/BmyXHa3.jpeg" alt="James Bike" class="w-20 h-20 object-contain mb-3 rounded-xl neon-box-purple animate-bounce p-1">
                     <h2 class="font-pixel text-sm sm:text-lg text-secondary mb-2">JAMES BIKE 3D RACER</h2>
-                    <p class="text-[11px] text-gray-300 mb-4 font-mono max-w-xs">Full 3D Highway Racing Experience on Monad. Use touch or keyboard controls.</p>
-                    <button onclick="startGame()" class="px-6 py-3 bg-secondary text-monadBgDark font-bold rounded-xl font-pixel text-[10px] hover:scale-105 transition neon-box-lime">
+                    <p class="text-[11px] text-gray-300 mb-4 font-mono max-w-xs">Full 3D Highway Racing on Monad. Slide anywhere on screen to steer your bike!</p>
+                    <button onclick="startGame()" class="px-6 py-3 bg-secondary text-monadBgDark font-bold rounded-xl font-pixel text-[10px] hover:scale-105 transition neon-box-lime cursor-pointer">
                         START 3D ENGINE
                     </button>
                 </div>
@@ -109,7 +107,7 @@
                         <div class="flex justify-between"><span>Coins:</span><span id="go-coins" class="text-secondary font-bold">0</span></div>
                     </div>
 
-                    <button onclick="startGame()" class="px-6 py-3 bg-secondary text-monadBgDark font-bold rounded-xl font-pixel text-[10px] hover:scale-105 transition neon-box-lime">
+                    <button onclick="startGame()" class="px-6 py-3 bg-secondary text-monadBgDark font-bold rounded-xl font-pixel text-[10px] hover:scale-105 transition neon-box-lime cursor-pointer">
                         PLAY AGAIN
                     </button>
                 </div>
@@ -134,19 +132,6 @@
         </div>
     </main>
 
-    <!-- Mobile Touch Controls -->
-    <div class="w-full max-w-5xl mx-auto px-4 pb-4 pt-1 grid grid-cols-2 gap-4 shrink-0 z-30 select-none">
-        <div class="flex space-x-2">
-            <button id="btn-left" class="flex-1 h-16 bg-primary/20 border-2 border-primary rounded-2xl flex items-center justify-center text-xl font-bold active:bg-primary">◀</button>
-            <button id="btn-right" class="flex-1 h-16 bg-primary/20 border-2 border-primary rounded-2xl flex items-center justify-center text-xl font-bold active:bg-primary">▶</button>
-        </div>
-        <div class="grid grid-cols-3 gap-2">
-            <button id="btn-brake" class="h-16 bg-red-500/20 border-2 border-red-500 rounded-2xl flex items-center justify-center text-lg font-bold active:bg-red-500">▼</button>
-            <button id="btn-accel" class="h-16 bg-secondary/20 border-2 border-secondary rounded-2xl flex items-center justify-center text-lg font-bold text-secondary active:bg-secondary active:text-monadBgDark">▲</button>
-            <button id="btn-nitro" class="h-16 bg-accent/20 border-2 border-accent rounded-2xl flex items-center justify-center text-xs font-bold text-accent active:bg-accent active:text-monadBgDark font-pixel">⚡</button>
-        </div>
-    </div>
-
     <!-- Three.js 3D Racing Game Logic -->
     <script>
         let scene, camera, renderer, bikeMesh;
@@ -156,11 +141,16 @@
         let nitroVal = 100;
         let fuelVal = 100;
         let speedKMH = 0;
-        let roadSegments = [];
         let trafficCars = [];
         let coinObjects = [];
 
-        let input = { left: false, right: false, accel: false, brake: false, nitro: false };
+        // Direct Touch / Pointer control variables
+        let touchTargetX = 0;
+        let isTouching = false;
+        let lastTapTime = 0;
+        let isNitroActive = false;
+
+        let input = { left: false, right: false };
 
         function init3D() {
             const container = document.getElementById('canvas-container');
@@ -208,11 +198,10 @@
                 renderer.setSize(container.clientWidth, container.clientHeight);
             });
 
-            setupControls();
+            setupDirectTouchControls(container);
         }
 
         function createRoad() {
-            // Infinite road grid simulation
             const roadGeo = new THREE.PlaneGeometry(16, 1000);
             const roadMat = new THREE.MeshStandardMaterial({ color: 0x110d26, roughness: 0.8 });
             const road = new THREE.Mesh(roadGeo, roadMat);
@@ -220,7 +209,6 @@
             road.position.set(0, 0, 500);
             scene.add(road);
 
-            // Neon road borders
             const lineMat = new THREE.MeshBasicMaterial({ color: 0xC5FF3D });
             const leftBorder = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 1000), lineMat);
             leftBorder.position.set(-8, 0.05, 500);
@@ -231,35 +219,56 @@
             scene.add(rightBorder);
         }
 
-        function setupControls() {
+        function setupDirectTouchControls(container) {
+            // Keyboard fallbacks
             window.addEventListener('keydown', e => {
                 if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
                 if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
-                if (e.code === 'ArrowUp' || e.code === 'KeyW') input.accel = true;
-                if (e.code === 'ArrowDown' || e.code === 'KeyS') input.brake = true;
-                if (e.code === 'Space') input.nitro = true;
+                if (e.code === 'Space') isNitroActive = true;
             });
             window.addEventListener('keyup', e => {
                 if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
                 if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
-                if (e.code === 'ArrowUp' || e.code === 'KeyW') input.accel = false;
-                if (e.code === 'ArrowDown' || e.code === 'KeyS') input.brake = false;
-                if (e.code === 'Space') input.nitro = false;
+                if (e.code === 'Space') isNitroActive = false;
             });
 
-            const bindTouch = (id, key) => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                el.addEventListener('pointerdown', () => input[key] = true);
-                el.addEventListener('pointerup', () => input[key] = false);
-                el.addEventListener('pointerleave', () => input[key] = false);
+            // Direct Screen Touch & Mouse Drag Steering
+            const updateTouchCoordinates = (clientX) => {
+                const rect = container.getBoundingClientRect();
+                const xPos = clientX - rect.left;
+                const normX = (xPos / rect.width) * 2 - 1; // ranges from -1 (left) to 1 (right)
+                touchTargetX = normX * 6.5; // map to road width limits
             };
 
-            bindTouch('btn-left', 'left');
-            bindTouch('btn-right', 'right');
-            bindTouch('btn-accel', 'accel');
-            bindTouch('btn-brake', 'brake');
-            bindTouch('btn-nitro', 'nitro');
+            container.addEventListener('pointerdown', e => {
+                isTouching = true;
+                updateTouchCoordinates(e.clientX);
+
+                // Double tap detection for Nitro burst
+                const currentTime = new Date().getTime();
+                if (currentTime - lastTapTime < 300) {
+                    isNitroActive = true;
+                }
+                lastTapTime = currentTime;
+
+                // Hide touch hint on interaction
+                const hint = document.getElementById('touch-hint');
+                if (hint) hint.style.opacity = '0';
+            });
+
+            container.addEventListener('pointermove', e => {
+                if (!isTouching) return;
+                updateTouchCoordinates(e.clientX);
+            });
+
+            const endTouch = () => {
+                isTouching = false;
+                isNitroActive = false;
+            };
+
+            container.addEventListener('pointerup', endTouch);
+            container.addEventListener('pointercancel', endTouch);
+            container.addEventListener('pointerleave', endTouch);
         }
 
         function startGame() {
@@ -271,9 +280,10 @@
             nitroVal = 100;
             fuelVal = 100;
             speedKMH = 80;
+            touchTargetX = 0;
             if (bikeMesh) bikeMesh.position.set(0, 1, 0);
 
-            // Clear old traffic
+            // Clear old traffic & coins
             trafficCars.forEach(c => scene.remove(c));
             trafficCars = [];
             coinObjects.forEach(c => scene.remove(c));
@@ -307,13 +317,9 @@
             if (!gameRunning || !bikeMesh) return;
 
             let targetSpeed = 120;
-            if (input.nitro && nitroVal > 0) {
+            if (isNitroActive && nitroVal > 0) {
                 targetSpeed = 220;
                 nitroVal -= 0.5;
-            } else if (input.brake) {
-                targetSpeed = 40;
-            } else if (input.accel) {
-                targetSpeed = 160;
             }
 
             speedKMH += (targetSpeed - speedKMH) * 0.05;
@@ -323,12 +329,17 @@
             distance += Math.floor(forwardSpeed * 10);
             fuelVal -= 0.005;
 
-            // Steering
-            if (input.left && bikeMesh.position.x > -6.5) {
+            // Direct touch positioning interpolation or keyboard override
+            if (isTouching) {
+                bikeMesh.position.x += (touchTargetX - bikeMesh.position.x) * 0.15;
+            } else if (input.left && bikeMesh.position.x > -6.5) {
                 bikeMesh.position.x -= 0.15;
             } else if (input.right && bikeMesh.position.x < 6.5) {
                 bikeMesh.position.x += 0.15;
             }
+
+            // Keep bike within bounds
+            bikeMesh.position.x = Math.max(-6.5, Math.min(6.5, bikeMesh.position.x));
 
             // Camera follow
             camera.position.x = bikeMesh.position.x * 0.5;
