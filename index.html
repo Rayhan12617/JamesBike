@@ -232,11 +232,11 @@
                 if (e.code === 'Space') isNitroActive = false;
             });
 
-            // Direct Screen Touch & Mouse Drag Steering (ইনভার্স ডিরেকশন ঠিক করা হয়েছে)
+            // Direct Screen Touch & Mouse Drag Steering (সঠিক ডিরেকশন: ডানে সোয়াইপ করলে ডানে যাবে, বামে সোয়াইপ করলে বামে যাবে)
             const updateTouchCoordinates = (clientX) => {
                 const rect = container.getBoundingClientRect();
                 const xPos = clientX - rect.left;
-                const normX = -((xPos / rect.width) * 2 - 1); // মাইনাস (-) দিয়ে ডিরেকশন ঠিক করা হয়েছে
+                const normX = (xPos / rect.width) * 2 - 1; // পজিটিভ (+) রেখে ডিরেকশন স্বাভাবিক করা হয়েছে
                 touchTargetX = normX * 6.5; 
             };
 
@@ -350,7 +350,7 @@
 
             // Collision check with traffic
             for (let i = trafficCars.length - 1; i >= 0; i--) {
-                const car = trafficCars.I;
+                const car = trafficCars[i];
                 if (car && car.position.z < bikeMesh.position.z - 20) {
                     scene.remove(car);
                     trafficCars.splice(i, 1);
