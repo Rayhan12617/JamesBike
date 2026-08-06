@@ -93,7 +93,7 @@
                 <div id="start-overlay" class="absolute inset-0 bg-monadBgDark/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 z-30">
                     <img src="https://i.imgur.com/BmyXHa3.jpeg" alt="James Bike" class="w-20 h-20 object-contain mb-3 rounded-xl neon-box-purple animate-bounce p-1">
                     <h2 class="font-pixel text-sm sm:text-lg text-secondary mb-2">JAMES BIKE 3D RACER</h2>
-                    <p class="text-[11px] text-gray-300 mb-4 font-mono max-w-xs">Full 3D Highway Racing Experience on Monad with Official Bike Sprite. Use touch or keyboard controls.</p>
+                    <p class="text-[11px] text-gray-300 mb-4 font-mono max-w-xs">Full 3D Highway Racing Experience on Monad. Use touch or keyboard controls.</p>
                     <button onclick="startGame()" class="px-6 py-3 bg-secondary text-monadBgDark font-bold rounded-xl font-pixel text-[10px] hover:scale-105 transition neon-box-lime">
                         START 3D ENGINE
                     </button>
@@ -125,7 +125,7 @@
                 </div>
                 <div class="bg-monadBgDark/80 p-2 rounded-xl border border-primary/20 flex items-center space-x-2">
                     <span class="text-[9px] font-mono text-primary font-bold">FUEL</span>
-                    <div class="flex-1 bg-gray-900 h-2 rounded-full overflow-hidden border border-secondary/30">
+                    <div class="flex-1 bg-gray-900 h-2 rounded-full overflow-hidden border border-primary/30">
                         <div id="fuel-bar" class="bg-primary h-full w-full transition-all" style="width: 100%;"></div>
                     </div>
                 </div>
@@ -147,7 +147,7 @@
         </div>
     </div>
 
-    <!-- Three.js 3D Racing Game Logic with Custom PNG Sprite -->
+    <!-- Three.js 3D Racing Game Logic -->
     <script>
         let scene, camera, renderer, bikeMesh;
         let gameRunning = false;
@@ -156,6 +156,7 @@
         let nitroVal = 100;
         let fuelVal = 100;
         let speedKMH = 0;
+        let roadSegments = [];
         let trafficCars = [];
         let coinObjects = [];
 
@@ -169,8 +170,8 @@
             scene.fog = new THREE.FogExp2(0x05040D, 0.015);
 
             camera = new THREE.PerspectiveCamera(65, container.clientWidth / container.clientHeight, 0.1, 1000);
-            camera.position.set(0, 2.5, -5);
-            camera.lookAt(0, 0.8, 5);
+            camera.position.set(0, 3, -6);
+            camera.lookAt(0, 1, 5);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
@@ -178,7 +179,7 @@
             container.appendChild(renderer.domElement);
 
             // Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(ambientLight);
 
             const dirLight = new THREE.DirectionalLight(0x8B5CFF, 1.5);
@@ -188,24 +189,16 @@
             // Road Setup
             createRoad();
 
-            // Load Player Bike using the requested PNG: https://i.imgur.com/OQnpobi.png
-            const textureLoader = new THREE.TextureLoader();
-            textureLoader.load('https://i.imgur.com/OQnpobi.png', (texture) => {
-                texture.generateMipmaps = false;
-                texture.minFilter = THREE.NearestFilter;
-                texture.magFilter = THREE.NearestFilter;
-
-                const bikeMat = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-                const bikeGeo = new THREE.PlaneGeometry(2.2, 2.2);
-                bikeMesh = new THREE.Mesh(bikeGeo, bikeMat);
-                bikeMesh.position.set(0, 0.8, 0);
-                scene.add(bikeMesh);
-            }, undefined, () => {
-                // Fallback box if texture fails
-                const bikeGeo = new THREE.BoxGeometry(1.2, 1, 2.2);
-                const bikeMat = new THREE.MeshBasicMaterial({ color: 0xC5FF3D });
-                bikeMesh = new THREE.Mesh(bikeGeo, bikeMat);
-                bikeMesh.position.set(0, 0.6, 0);
+            // Bike Sprite Loader
+            const loader = new THREE.TextureLoader();
+            loader.load("https://i.imgur.com/OQnpobi.png", function(texture){
+                const material = new THREE.SpriteMaterial({
+                    map: texture,
+                    transparent: true
+                });
+                bikeMesh = new THREE.Sprite(material);
+                bikeMesh.scale.set(2.5, 2.5, 1);
+                bikeMesh.position.set(0, 1, 0);
                 scene.add(bikeMesh);
             });
 
@@ -219,6 +212,7 @@
         }
 
         function createRoad() {
+            // Infinite road grid simulation
             const roadGeo = new THREE.PlaneGeometry(16, 1000);
             const roadMat = new THREE.MeshStandardMaterial({ color: 0x110d26, roughness: 0.8 });
             const road = new THREE.Mesh(roadGeo, roadMat);
@@ -226,6 +220,7 @@
             road.position.set(0, 0, 500);
             scene.add(road);
 
+            // Neon road borders
             const lineMat = new THREE.MeshBasicMaterial({ color: 0xC5FF3D });
             const leftBorder = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 1000), lineMat);
             leftBorder.position.set(-8, 0.05, 500);
@@ -276,8 +271,9 @@
             nitroVal = 100;
             fuelVal = 100;
             speedKMH = 80;
-            if (bikeMesh) bikeMesh.position.set(0, 0.8, 0);
+            if (bikeMesh) bikeMesh.position.set(0, 1, 0);
 
+            // Clear old traffic
             trafficCars.forEach(c => scene.remove(c));
             trafficCars = [];
             coinObjects.forEach(c => scene.remove(c));
@@ -285,23 +281,23 @@
         }
 
         function spawnTraffic() {
-            if (Math.random() < 0.03 && trafficCars.length < 6) {
+            if (Math.random() < 0.03 && trafficCars.length < 6 && bikeMesh) {
                 const carGeo = new THREE.BoxGeometry(1.8, 1.2, 3.5);
                 const carMat = new THREE.MeshStandardMaterial({ color: 0xff3366 });
                 const car = new THREE.Mesh(carGeo, carMat);
                 const laneX = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 5);
-                car.position.set(laneX, 0.6, bikeMesh ? bikeMesh.position.z + 120 : 120);
+                car.position.set(laneX, 0.6, bikeMesh.position.z + 120);
                 scene.add(car);
                 trafficCars.push(car);
             }
 
-            if (Math.random() < 0.04) {
+            if (Math.random() < 0.04 && bikeMesh) {
                 const coinGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
                 const coinMat = new THREE.MeshBasicMaterial({ color: 0xC5FF3D });
                 const coin = new THREE.Mesh(coinGeo, coinMat);
                 coin.rotation.x = Math.PI / 2;
                 const laneX = (Math.random() - 0.5) * 10;
-                coin.position.set(laneX, 0.8, bikeMesh ? bikeMesh.position.z + 120 : 120);
+                coin.position.set(laneX, 0.8, bikeMesh.position.z + 120);
                 scene.add(coin);
                 coinObjects.push(coin);
             }
@@ -327,23 +323,17 @@
             distance += Math.floor(forwardSpeed * 10);
             fuelVal -= 0.005;
 
-            // Steering & Face camera rotation for sprite
+            // Steering
             if (input.left && bikeMesh.position.x > -6.5) {
                 bikeMesh.position.x -= 0.15;
-                bikeMesh.rotation.z = 0.2;
             } else if (input.right && bikeMesh.position.x < 6.5) {
                 bikeMesh.position.x += 0.15;
-                bikeMesh.rotation.z = -0.2;
-            } else {
-                bikeMesh.rotation.z *= 0.8;
             }
-            // Make sprite always face camera smoothly
-            bikeMesh.quaternion.copy(camera.quaternion);
 
             // Camera follow
-            camera.position.x = bikeMesh.position.x * 0.4;
-            camera.position.z = bikeMesh.position.z - 5;
-            camera.lookAt(bikeMesh.position.x, bikeMesh.position.y, bikeMesh.position.z + 4);
+            camera.position.x = bikeMesh.position.x * 0.5;
+            camera.position.z = bikeMesh.position.z - 6;
+            camera.lookAt(bikeMesh.position.x, bikeMesh.position.y + 1, bikeMesh.position.z + 4);
 
             spawnTraffic();
 
