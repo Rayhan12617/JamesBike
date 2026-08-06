@@ -62,14 +62,14 @@
             <span class="font-bold text-xs tracking-wider font-pixel">JAMES <span class="text-secondary">BIKE</span></span>
         </div>
         <div class="flex items-center space-x-2 text-xs font-mono">
+            <a href="https://nad.fun/tokens/0x2C2Bc1915f2dD42adeF1bA59B92c74c2b5e97777" target="_blank" class="px-2.5 py-1 rounded bg-secondary text-monadBgDark font-bold hover:scale-105 transition">BUY</a>
             <a href="https://x.com/i/status/2085171884136493157" target="_blank" class="px-2.5 py-1 rounded bg-primary/20 border border-primary text-primary font-bold">X</a>
-            <span class="px-2.5 py-1 rounded bg-secondary text-monadBgDark font-pixel text-[8px] font-bold">MONAD 3D</span>
         </div>
     </header>
 
     <!-- Main Game Viewport (3D Canvas + Direct Touch Control Area) -->
     <main class="flex-1 flex flex-col items-center justify-center p-2 relative overflow-hidden w-full max-w-5xl mx-auto">
-        <div class="w-full h-full max-h-[85vh] bg-monadBgMid rounded-2xl neon-box-purple p-2 relative flex flex-col justify-between overflow-hidden">
+        <div class="w-full h-full max-h-[80vh] bg-monadBgMid rounded-2xl neon-box-purple p-2 relative flex flex-col justify-between overflow-hidden">
             
             <!-- HUD Top Bar -->
             <div class="grid grid-cols-4 gap-2 bg-monadBgDark/80 p-2 rounded-xl border border-primary/20 text-[10px] sm:text-xs font-mono text-center shrink-0 z-20">
@@ -130,6 +130,22 @@
             </div>
 
         </div>
+
+        <!-- Contract Address Footer Bar -->
+        <div class="w-full mt-2 bg-monadBgMid/90 border border-primary/20 rounded-xl px-3 py-2 flex items-center justify-between text-xs font-mono shrink-0">
+            <div class="truncate mr-2">
+                <span class="text-gray-400 text-[10px] block">CA:</span>
+                <span id="ca-text" class="text-secondary font-bold select-all text-[11px]">0x2C2Bc1915f2dD42adeF1bA59B92c74c2b5e97777</span>
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+                <button onclick="copyCA()" id="copy-btn" class="px-3 py-1 bg-primary/20 hover:bg-primary/40 border border-primary text-primary font-bold rounded-lg text-[10px] transition cursor-pointer">
+                    COPY
+                </button>
+                <a href="https://nad.fun/tokens/0x2C2Bc1915f2dD42adeF1bA59B92c74c2b5e97777" target="_blank" class="px-3 py-1 bg-secondary hover:bg-secondary/80 text-monadBgDark font-bold rounded-lg text-[10px] transition">
+                    BUY $BIKE
+                </a>
+            </div>
+        </div>
     </main>
 
     <!-- Three.js 3D Racing Game Logic -->
@@ -152,6 +168,17 @@
         let lastClientX = 0;
 
         let input = { left: false, right: false };
+
+        function copyCA() {
+            const ca = "0x2C2Bc1915f2dD42adeF1bA59B92c74c2b5e97777";
+            navigator.clipboard.writeText(ca).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.innerText = "COPIED!";
+                setTimeout(() => {
+                    btn.innerText = "COPY";
+                }, 2000);
+            });
+        }
 
         function init3D() {
             const container = document.getElementById('canvas-container');
@@ -233,7 +260,7 @@
                 if (e.code === 'Space') isNitroActive = false;
             });
 
-            // সঠিক ডিরেকশন: ডানে সোয়াইপ করলে ডানে, বামে সোয়াইপ করলে বামে যাবে (-) মাইনাস চিহ্ন দিয়ে দিক ঠিক করা হয়েছে
+            // সঠিক ডিরেকশন: ডানে সোয়াইপ করলে ডানে, বামে সোয়াইপ করলে বামে যাবে
             container.addEventListener('pointerdown', e => {
                 isTouching = true;
                 lastClientX = e.clientX;
@@ -256,7 +283,6 @@
                 const deltaX = e.clientX - lastClientX;
                 lastClientX = e.clientX;
 
-                // ডেল্টা নেগেটিভ করা হয়েছে যাতে ডানে টানলে পজিটিভ এবং বামে টানলে নেগেটিভ হয়
                 touchTargetX -= deltaX * 0.03;
                 touchTargetX = Math.max(-6.5, Math.min(6.5, touchTargetX));
             });
@@ -291,7 +317,7 @@
         }
 
         function spawnTraffic() {
-            // গাড়ির সংখ্যা কমানো হয়েছে এবং জেনারেট রেট সহজ করা হয়েছে (Easy Mode)
+            // Easy Mode: গাড়ির সংখ্যা কমানো এবং ফ্রিকোয়েন্সি হালকা করা হয়েছে
             if (Math.random() < 0.015 && trafficCars.length < 4 && bikeMesh) {
                 const carGeo = new THREE.BoxGeometry(1.8, 1.2, 3.5);
                 const carMat = new THREE.MeshStandardMaterial({ color: 0xff3366 });
@@ -302,7 +328,6 @@
                 trafficCars.push(car);
             }
 
-            // কয়েন বেশি দেওয়া হয়েছে সহজে খেলার জন্য
             if (Math.random() < 0.06 && bikeMesh) {
                 const coinGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.1, 16);
                 const coinMat = new THREE.MeshBasicMaterial({ color: 0xC5FF3D });
@@ -318,7 +343,7 @@
         function updateGame() {
             if (!gameRunning || !bikeMesh) return;
 
-            // স্পিড একটু কমানো হয়েছে যাতে গেম অনেক সহজ হয় (Easy Mode)
+            // Easy Mode Speed
             let targetSpeed = 95;
             if (isNitroActive && nitroVal > 0) {
                 targetSpeed = 160;
@@ -330,9 +355,8 @@
 
             bikeMesh.position.z += forwardSpeed;
             distance += Math.floor(forwardSpeed * 10);
-            fuelVal -= 0.002; // ফুয়েল খরচ কমানো হয়েছে
+            fuelVal -= 0.002;
 
-            // Direct touch positioning interpolation or keyboard override
             if (isTouching) {
                 bikeMesh.position.x += (touchTargetX - bikeMesh.position.x) * 0.2;
             } else if (input.left && bikeMesh.position.x > -6.5) {
@@ -341,17 +365,14 @@
                 bikeMesh.position.x += 0.15;
             }
 
-            // Keep bike within bounds
             bikeMesh.position.x = Math.max(-6.5, Math.min(6.5, bikeMesh.position.x));
 
-            // Camera follow
             camera.position.x = bikeMesh.position.x * 0.5;
             camera.position.z = bikeMesh.position.z - 6;
             camera.lookAt(bikeMesh.position.x, bikeMesh.position.y + 1, bikeMesh.position.z + 4);
 
             spawnTraffic();
 
-            // Collision check with traffic (হিটবক্স আরও একটু ছোট করা হয়েছে যাতে ক্র্যাশ না করে সহজে পার পাওয়া যায়)
             for (let i = trafficCars.length - 1; i >= 0; i--) {
                 const car = trafficCars[i];
                 if (car && car.position.z < bikeMesh.position.z - 20) {
@@ -364,7 +385,6 @@
                 }
             }
 
-            // Coin collection
             for (let i = coinObjects.length - 1; i >= 0; i--) {
                 const coin = coinObjects[i];
                 if (coin && coin.position.z < bikeMesh.position.z - 10) {
@@ -379,7 +399,6 @@
                 }
             }
 
-            // Update HUD UI
             document.getElementById('hud-speed').innerText = Math.floor(speedKMH) + ' KM/H';
             document.getElementById('hud-distance').innerText = distance + 'm';
             document.getElementById('hud-coins').innerText = '🪙 ' + coinsCollected;
