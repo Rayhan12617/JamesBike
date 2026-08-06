@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>James Bike ($BIKE) — Monad Pixel Drift</title>
+    <title>James Bike ($BIKE) — 3D Browser Racing Game on Monad</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,9 +12,8 @@
             theme: {
                 extend: {
                     colors: {
-                        monadBgDark: '#090015',
+                        monadBgDark: '#05040D',
                         monadBgMid: '#130028',
-                        monadBgLight: '#1D0838',
                         primary: '#8B5CFF',
                         secondary: '#C5FF3D',
                         accent: '#B87DFF',
@@ -23,18 +22,20 @@
             }
         }
     </script>
+    <!-- Three.js for 3D Real Motorcycle Racing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Press+Start+2P&display=swap');
         
         body {
-            background: linear-gradient(135deg, #090015 0%, #130028 50%, #1D0838 100%);
+            background-color: #05040D;
             color: #ffffff;
             font-family: 'Inter', sans-serif;
-            overflow: hidden; /* Prevent body scrolling while playing */
+            overflow: hidden;
             position: fixed;
             width: 100%;
             height: 100%;
-            touch-action: none; /* Prevent accidental browser gestures */
+            touch-action: none;
         }
 
         .font-pixel {
@@ -42,16 +43,15 @@
         }
 
         .neon-box-purple {
-            box-shadow: 0 0 20px rgba(139, 92, 255, 0.4);
+            box-shadow: 0 0 25px rgba(139, 92, 255, 0.5);
             border: 1px solid rgba(139, 92, 255, 0.3);
         }
 
         .neon-box-lime {
-            box-shadow: 0 0 20px rgba(197, 255, 61, 0.4);
+            box-shadow: 0 0 25px rgba(197, 255, 61, 0.5);
             border: 1px solid rgba(197, 255, 61, 0.3);
         }
 
-        /* Prevent text selection and zooming on buttons */
         button {
             -webkit-touch-callout: none;
             -webkit-user-select: none;
@@ -68,351 +68,333 @@
             <img src="https://i.imgur.com/BmyXHa3.jpeg" alt="$BIKE" class="w-7 h-7 object-contain rounded-md neon-box-purple">
             <span class="font-bold text-xs tracking-wider font-pixel">JAMES <span class="text-secondary">BIKE</span></span>
         </div>
-        <div class="flex items-center space-x-2">
-            <a href="https://x.com/i/status/2085171884136493157" target="_blank" class="px-2.5 py-1 rounded bg-primary/20 border border-primary text-[10px] font-bold text-primary">X</a>
-            <span class="px-2.5 py-1 rounded bg-secondary text-monadBgDark font-pixel text-[8px] font-bold">MONAD</span>
+        <div class="flex items-center space-x-2 text-xs font-mono">
+            <a href="https://x.com/i/status/2085171884136493157" target="_blank" class="px-2.5 py-1 rounded bg-primary/20 border border-primary text-primary font-bold">X</a>
+            <span class="px-2.5 py-1 rounded bg-secondary text-monadBgDark font-pixel text-[8px] font-bold">MONAD 3D</span>
         </div>
     </header>
 
-    <!-- Main Game Area -->
-    <main class="flex-1 flex flex-col items-center justify-center p-2 relative overflow-hidden w-full max-w-4xl mx-auto">
-        
-        <!-- Game Container -->
-        <div class="w-full h-full max-h-[75vh] bg-monadBgMid rounded-2xl neon-box-purple p-3 relative flex flex-col justify-between">
+    <!-- Main Game Viewport (3D Canvas) -->
+    <main class="flex-1 flex flex-col items-center justify-center p-2 relative overflow-hidden w-full max-w-5xl mx-auto">
+        <div class="w-full h-full max-h-[78vh] bg-monadBgMid rounded-2xl neon-box-purple p-2 relative flex flex-col justify-between overflow-hidden">
             
-            <!-- HUD -->
-            <div class="grid grid-cols-4 gap-2 bg-monadBgDark/80 p-2 rounded-xl border border-primary/20 text-[10px] sm:text-xs font-mono text-center shrink-0">
-                <div><span class="text-gray-400 block text-[9px]">SCORE</span><span id="hud-score" class="text-secondary font-bold">0</span></div>
+            <!-- HUD Top Bar -->
+            <div class="grid grid-cols-4 gap-2 bg-monadBgDark/80 p-2 rounded-xl border border-primary/20 text-[10px] sm:text-xs font-mono text-center shrink-0 z-20">
+                <div><span class="text-gray-400 block text-[9px]">SPEED</span><span id="hud-speed" class="text-secondary font-bold">0 KM/H</span></div>
                 <div><span class="text-gray-400 block text-[9px]">DISTANCE</span><span id="hud-distance" class="text-white font-bold">0m</span></div>
-                <div><span class="text-gray-400 block text-[9px]">COMBO</span><span id="hud-combo" class="text-primary font-bold">1x</span></div>
+                <div><span class="text-gray-400 block text-[9px]">FPS</span><span id="hud-fps" class="text-primary font-bold">60</span></div>
                 <div><span class="text-gray-400 block text-[9px]">COINS</span><span id="hud-coins" class="text-secondary font-bold">🪙 0</span></div>
             </div>
 
-            <!-- Canvas Viewport -->
-            <div class="relative flex-1 w-full my-2 bg-monadBgDark rounded-xl overflow-hidden border border-primary/30 flex items-center justify-center">
-                <canvas id="gameCanvas" class="w-full h-full object-cover"></canvas>
-
-                <!-- Start Screen -->
-                <div id="start-overlay" class="absolute inset-0 bg-monadBgDark/95 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 z-20">
-                    <img src="https://i.imgur.com/BmyXHa3.jpeg" alt="James Bike" class="w-16 h-16 object-contain mb-3 rounded-xl neon-box-purple animate-bounce p-1">
-                    <h2 class="font-pixel text-sm sm:text-lg text-secondary mb-2">JAMES BIKE DRIFT</h2>
-                    <p class="text-[11px] text-gray-300 mb-4 font-mono max-w-xs">Use touch controls below or keyboard arrows. Press START to race!</p>
-                    <button onclick="initGame()" class="px-6 py-3 bg-secondary text-monadBgDark font-bold rounded-xl font-pixel text-[10px] hover:scale-105 transition neon-box-lime">
-                        START GAME
+            <!-- Three.js Canvas Container -->
+            <div id="canvas-container" class="relative flex-1 w-full my-2 bg-black rounded-xl overflow-hidden border border-primary/30 flex items-center justify-center">
+                
+                <!-- Start Overlay -->
+                <div id="start-overlay" class="absolute inset-0 bg-monadBgDark/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 z-30">
+                    <img src="https://i.imgur.com/BmyXHa3.jpeg" alt="James Bike" class="w-20 h-20 object-contain mb-3 rounded-xl neon-box-purple animate-bounce p-1">
+                    <h2 class="font-pixel text-sm sm:text-lg text-secondary mb-2">JAMES BIKE 3D RACER</h2>
+                    <p class="text-[11px] text-gray-300 mb-4 font-mono max-w-xs">Full 3D Highway Racing Experience on Monad. Use touch or keyboard controls.</p>
+                    <button onclick="startGame()" class="px-6 py-3 bg-secondary text-monadBgDark font-bold rounded-xl font-pixel text-[10px] hover:scale-105 transition neon-box-lime">
+                        START 3D ENGINE
                     </button>
                 </div>
 
-                <!-- Game Over Screen -->
-                <div id="gameover-overlay" class="absolute inset-0 bg-monadBgDark/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 z-20 hidden">
+                <!-- Game Over Overlay -->
+                <div id="gameover-overlay" class="absolute inset-0 bg-monadBgDark/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 z-30 hidden">
                     <h2 class="font-pixel text-base sm:text-xl text-red-500 mb-2">CRASHED!</h2>
-                    <p class="text-[11px] text-gray-400 mb-3 font-mono">Your Monad run has ended.</p>
+                    <p class="text-[11px] text-gray-400 mb-3 font-mono">Your Monad 3D run has ended.</p>
                     
                     <div class="bg-monadBgMid p-3 rounded-xl mb-4 w-56 text-xs font-mono space-y-1.5 border border-primary/30 text-left">
-                        <div class="flex justify-between"><span>Score:</span><span id="go-score" class="text-secondary font-bold">0</span></div>
                         <div class="flex justify-between"><span>Distance:</span><span id="go-distance" class="text-white font-bold">0m</span></div>
                         <div class="flex justify-between"><span>Coins:</span><span id="go-coins" class="text-secondary font-bold">0</span></div>
                     </div>
 
-                    <button onclick="initGame()" class="px-6 py-3 bg-secondary text-monadBgDark font-bold rounded-xl font-pixel text-[10px] hover:scale-105 transition neon-box-lime">
+                    <button onclick="startGame()" class="px-6 py-3 bg-secondary text-monadBgDark font-bold rounded-xl font-pixel text-[10px] hover:scale-105 transition neon-box-lime">
                         PLAY AGAIN
                     </button>
                 </div>
             </div>
 
-            <!-- Nitro Bar -->
-            <div class="w-full bg-monadBgDark/80 p-2 rounded-xl border border-primary/20 flex items-center space-x-3 shrink-0">
-                <span class="text-[10px] font-mono text-secondary font-bold">NITRO</span>
-                <div class="flex-1 bg-gray-900 h-2 rounded-full overflow-hidden border border-secondary/30">
-                    <div id="hud-nitro" class="bg-secondary h-full w-full transition-all"></div>
+            <!-- Nitro & Fuel Bar -->
+            <div class="grid grid-cols-2 gap-2 shrink-0 z-20">
+                <div class="bg-monadBgDark/80 p-2 rounded-xl border border-primary/20 flex items-center space-x-2">
+                    <span class="text-[9px] font-mono text-secondary font-bold">NITRO</span>
+                    <div class="flex-1 bg-gray-900 h-2 rounded-full overflow-hidden border border-secondary/30">
+                        <div id="nitro-bar" class="bg-secondary h-full w-full transition-all"></div>
+                    </div>
+                </div>
+                <div class="bg-monadBgDark/80 p-2 rounded-xl border border-primary/20 flex items-center space-x-2">
+                    <span class="text-[9px] font-mono text-primary font-bold">FUEL</span>
+                    <div class="flex-1 bg-gray-900 h-2 rounded-full overflow-hidden border border-primary/30">
+                        <div id="fuel-bar" class="bg-primary h-full w-full transition-all" style="width: 100%;"></div>
+                    </div>
                 </div>
             </div>
 
         </div>
     </main>
 
-    <!-- FIXED MOBILE TOUCH CONTROLS (Always rendered for mobile support) -->
-    <div id="touch-controls" class="w-full max-w-4xl mx-auto px-4 pb-4 pt-1 grid grid-cols-2 gap-4 shrink-0 z-30 select-none">
-        <!-- Left Side: Steering -->
+    <!-- Mobile Touch Controls -->
+    <div class="w-full max-w-5xl mx-auto px-4 pb-4 pt-1 grid grid-cols-2 gap-4 shrink-0 z-30 select-none">
         <div class="flex space-x-2">
-            <button id="btn-left" class="flex-1 h-16 sm:h-20 bg-primary/20 border-2 border-primary rounded-2xl flex items-center justify-center text-xl font-bold active:bg-primary transition-colors">
-                ◀
-            </button>
-            <button id="btn-right" class="flex-1 h-16 sm:h-20 bg-primary/20 border-2 border-primary rounded-2xl flex items-center justify-center text-xl font-bold active:bg-primary transition-colors">
-                ▶
-            </button>
+            <button id="btn-left" class="flex-1 h-16 bg-primary/20 border-2 border-primary rounded-2xl flex items-center justify-center text-xl font-bold active:bg-primary">◀</button>
+            <button id="btn-right" class="flex-1 h-16 bg-primary/20 border-2 border-primary rounded-2xl flex items-center justify-center text-xl font-bold active:bg-primary">▶</button>
         </div>
-
-        <!-- Right Side: Action (Accelerate, Brake, Nitro) -->
         <div class="grid grid-cols-3 gap-2">
-            <button id="btn-brake" class="h-16 sm:h-20 bg-red-500/20 border-2 border-red-500 rounded-2xl flex items-center justify-center text-lg font-bold active:bg-red-500 transition-colors">
-                ▼
-            </button>
-            <button id="btn-accel" class="h-16 sm:h-20 bg-secondary/20 border-2 border-secondary rounded-2xl flex items-center justify-center text-lg font-bold text-secondary active:bg-secondary active:text-monadBgDark transition-colors">
-                ▲
-            </button>
-            <button id="btn-nitro" class="h-16 sm:h-20 bg-accent/20 border-2 border-accent rounded-2xl flex items-center justify-center text-xs font-bold text-accent active:bg-accent active:text-monadBgDark transition-colors font-pixel">
-                ⚡
-            </button>
+            <button id="btn-brake" class="h-16 bg-red-500/20 border-2 border-red-500 rounded-2xl flex items-center justify-center text-lg font-bold active:bg-red-500">▼</button>
+            <button id="btn-accel" class="h-16 bg-secondary/20 border-2 border-secondary rounded-2xl flex items-center justify-center text-lg font-bold text-secondary active:bg-secondary active:text-monadBgDark">▲</button>
+            <button id="btn-nitro" class="h-16 bg-accent/20 border-2 border-accent rounded-2xl flex items-center justify-center text-xs font-bold text-accent active:bg-accent active:text-monadBgDark font-pixel">⚡</button>
         </div>
     </div>
 
-    <!-- Game Engine Script -->
+    <!-- Three.js 3D Racing Game Logic -->
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        let gameActive = false;
-        let score = 0;
+        let scene, camera, renderer, bikeMesh;
+        let gameRunning = false;
         let distance = 0;
-        let combo = 1;
-        let coins = 0;
-        let nitro = 100;
-        let speed = 6;
-        let roadOffset = 0;
+        let coinsCollected = 0;
+        let nitroVal = 100;
+        let fuelVal = 100;
+        let speedKMH = 0;
+        let roadSegments = [];
+        let trafficCars = [];
+        let coinObjects = [];
 
-        const bikeImg = new Image();
-        bikeImg.src = "https://i.imgur.com/BmyXHa3.jpeg";
-        let imageLoaded = false;
-        bikeImg.onload = () => { imageLoaded = true; };
+        let input = { left: false, right: false, accel: false, brake: false, nitro: false };
 
-        let bike = {
-            x: canvas.width / 2 - 25,
-            y: canvas.height - 90,
-            width: 48,
-            height: 48,
-            angle: 0
-        };
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x05040D);
+            scene.fog = new THREE.FogExp2(0x05040D, 0.015);
 
-        // Input state mapping
-        let inputs = {
-            left: false,
-            right: false,
-            accel: false,
-            brake: false,
-            nitro: false
-        };
+            camera = new THREE.PerspectiveCamera(65, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 3, -6);
+            camera.lookAt(0, 1, 5);
 
-        // Keyboard mappings
-        let keys = {};
-        window.addEventListener('keydown', e => {
-            keys[e.code] = true;
-            updateInputStates();
-        });
-        window.addEventListener('keyup', e => {
-            keys[e.code] = false;
-            updateInputStates();
-        });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
 
-        function updateInputStates() {
-            inputs.left = keys['ArrowLeft'] || keys['KeyA'] || touchStates.left;
-            inputs.right = keys['ArrowRight'] || keys['KeyD'] || touchStates.right;
-            inputs.accel = keys['ArrowUp'] || keys['KeyW'] || touchStates.accel;
-            inputs.brake = keys['ArrowDown'] || keys['KeyS'] || touchStates.brake;
-            inputs.nitro = keys['Space'] || touchStates.nitro;
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x8B5CFF, 1.5);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            // Road Setup
+            createRoad();
+
+            // Bike placeholder / Textured Box using James Bike image
+            const textureLoader = new THREE.TextureLoader();
+            const bikeTexture = textureLoader.load('https://i.imgur.com/BmyXHa3.jpeg');
+            const bikeMat = new THREE.MeshBasicMaterial({ map: bikeTexture });
+            const bikeGeo = new THREE.BoxGeometry(1.2, 1, 2.2);
+            bikeMesh = new THREE.Mesh(bikeGeo, bikeMat);
+            bikeMesh.position.set(0, 0.6, 0);
+            scene.add(bikeMesh);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+
+            setupControls();
         }
 
-        // Touch States
-        let touchStates = { left: false, right: false, accel: false, brake: false, nitro: false };
+        function createRoad() {
+            // Infinite road grid simulation
+            const roadGeo = new THREE.PlaneGeometry(16, 1000);
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x110d26, roughness: 0.8 });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(0, 0, 500);
+            scene.add(road);
 
-        function bindTouchButton(id, stateKey) {
-            const btn = document.getElementById(id);
-            if (!btn) return;
+            // Neon road borders
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0xC5FF3D });
+            const leftBorder = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 1000), lineMat);
+            leftBorder.position.set(-8, 0.05, 500);
+            scene.add(leftBorder);
 
-            const activate = (e) => {
-                e.preventDefault();
-                touchStates[stateKey] = true;
-                updateInputStates();
-            };
-
-            const deactivate = (e) => {
-                e.preventDefault();
-                touchStates[stateKey] = false;
-                updateInputStates();
-            };
-
-            btn.addEventListener('pointerdown', activate);
-            btn.addEventListener('pointerup', deactivate);
-            btn.addEventListener('pointerleave', deactivate);
-            btn.addEventListener('touchstart', activate, {passive: false});
-            btn.addEventListener('touchend', deactivate, {passive: false});
+            const rightBorder = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 1000), lineMat);
+            rightBorder.position.set(8, 0.05, 500);
+            scene.add(rightBorder);
         }
 
-        bindTouchButton('btn-left', 'left');
-        bindTouchButton('btn-right', 'right');
-        bindTouchButton('btn-accel', 'accel');
-        bindTouchButton('btn-brake', 'brake');
-        bindTouchButton('btn-nitro', 'nitro');
+        function setupControls() {
+            window.addEventListener('keydown', e => {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+                if (e.code === 'ArrowUp' || e.code === 'KeyW') input.accel = true;
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') input.brake = true;
+                if (e.code === 'Space') input.nitro = true;
+            });
+            window.addEventListener('keyup', e => {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+                if (e.code === 'ArrowUp' || e.code === 'KeyW') input.accel = false;
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') input.brake = false;
+                if (e.code === 'Space') input.nitro = false;
+            });
 
-        let obstacles = [];
+            const bindTouch = (id, key) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('pointerdown', () => input[key] = true);
+                el.addEventListener('pointerup', () => input[key] = false);
+                el.addEventListener('pointerleave', () => input[key] = false);
+            };
 
-        function initGame() {
+            bindTouch('btn-left', 'left');
+            bindTouch('btn-right', 'right');
+            bindTouch('btn-accel', 'accel');
+            bindTouch('btn-brake', 'brake');
+            bindTouch('btn-nitro', 'nitro');
+        }
+
+        function startGame() {
             document.getElementById('start-overlay').style.display = 'none';
             document.getElementById('gameover-overlay').style.display = 'none';
-            gameActive = true;
-            score = 0;
+            gameRunning = true;
             distance = 0;
-            combo = 1;
-            coins = 0;
-            nitro = 100;
-            speed = 6;
-            obstacles = [];
-            bike.x = canvas.width / 2 - 24;
-            gameLoop();
+            coinsCollected = 0;
+            nitroVal = 100;
+            fuelVal = 100;
+            speedKMH = 80;
+            bikeMesh.position.set(0, 0.6, 0);
+
+            // Clear old traffic
+            trafficCars.forEach(c => scene.remove(c));
+            trafficCars = [];
+            coinObjects.forEach(c => scene.remove(c));
+            coinObjects = [];
         }
 
-        function spawnObstacle() {
-            if (Math.random() < 0.035) {
-                obstacles.push({
-                    x: Math.random() * (canvas.width - 90) + 45,
-                    y: -50,
-                    width: 42,
-                    height: 42,
-                    type: Math.random() > 0.4 ? 'car' : 'coin'
-                });
+        function spawnTraffic() {
+            if (Math.random() < 0.03 && trafficCars.length < 6) {
+                const carGeo = new THREE.BoxGeometry(1.8, 1.2, 3.5);
+                const carMat = new THREE.MeshStandardMaterial({ color: 0xff3366 });
+                const car = new THREE.Mesh(carGeo, carMat);
+                const laneX = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 5);
+                car.position.set(laneX, 0.6, bikeMesh.position.z + 120);
+                scene.add(car);
+                trafficCars.push(car);
+            }
+
+            if (Math.random() < 0.04) {
+                const coinGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
+                const coinMat = new THREE.MeshBasicMaterial({ color: 0xC5FF3D });
+                const coin = new THREE.Mesh(coinGeo, coinMat);
+                coin.rotation.x = Math.PI / 2;
+                const laneX = (Math.random() - 0.5) * 10;
+                coin.position.set(laneX, 0.8, bikeMesh.position.z + 120);
+                scene.add(coin);
+                coinObjects.push(coin);
             }
         }
 
         function updateGame() {
-            if (!gameActive) return;
+            if (!gameRunning) return;
 
-            // Speed modifications based on input
-            let currentSpeed = speed;
-            if (inputs.nitro && nitro > 0) {
-                currentSpeed = 12;
-                nitro -= 0.8;
-            } else if (inputs.brake) {
-                currentSpeed = 3;
-            } else if (inputs.accel) {
-                currentSpeed = 8;
-            } else {
-                if (nitro < 100) nitro += 0.2;
+            let targetSpeed = 120;
+            if (input.nitro && nitroVal > 0) {
+                targetSpeed = 220;
+                nitroVal -= 0.5;
+            } else if (input.brake) {
+                targetSpeed = 40;
+            } else if (input.accel) {
+                targetSpeed = 160;
             }
 
-            roadOffset += currentSpeed;
-            distance += Math.floor(currentSpeed);
-            score += Math.floor(currentSpeed * combo);
+            speedKMH += (targetSpeed - speedKMH) * 0.05;
+            const forwardSpeed = (speedKMH / 3.6) * 0.03;
 
-            // Steering & Drifting
-            if (inputs.left && bike.x > 35) {
-                bike.x -= 6.5;
-                bike.angle = -0.22;
-                combo = 2;
-            } else if (inputs.right && bike.x < canvas.width - 80) {
-                bike.x += 6.5;
-                bike.angle = 0.22;
-                combo = 2;
+            bikeMesh.position.z += forwardSpeed;
+            distance += Math.floor(forwardSpeed * 10);
+            fuelVal -= 0.005;
+
+            // Steering
+            if (input.left && bikeMesh.position.x > -6.5) {
+                bikeMesh.position.x -= 0.15;
+                bikeMesh.rotation.z = 0.25;
+            } else if (input.right && bikeMesh.position.x < 6.5) {
+                bikeMesh.position.x += 0.15;
+                bikeMesh.rotation.z = -0.25;
             } else {
-                bike.angle = 0;
-                combo = 1;
+                bikeMesh.rotation.z *= 0.8;
             }
 
-            spawnObstacle();
+            // Camera follow
+            camera.position.x = bikeMesh.position.x * 0.5;
+            camera.position.z = bikeMesh.position.z - 6;
+            camera.lookAt(bikeMesh.position.x, bikeMesh.position.y + 1, bikeMesh.position.z + 4);
 
-            // Obstacles update & collision
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].y += currentSpeed;
+            spawnTraffic();
 
-                let o = obstacles[i];
-                if (
-                    bike.x < o.x + o.width &&
-                    bike.x + bike.width > o.x &&
-                    bike.y < o.y + o.height &&
-                    bike.y + bike.height > o.y
-                ) {
-                    if (o.type === 'coin') {
-                        coins += 1;
-                        obstacles.splice(i, 1);
-                    } else {
-                        // Crash & Vibrate if supported
-                        if (navigator.vibrate) {
-                            navigator.vibrate(200);
-                        }
-                        gameActive = false;
-                        document.getElementById('go-score').innerText = score;
-                        document.getElementById('go-distance').innerText = distance + 'm';
-                        document.getElementById('go-coins').innerText = coins;
-                        document.getElementById('gameover-overlay').style.display = 'flex';
-                    }
+            // Collision check with traffic
+            for (let i = trafficCars.length - 1; i >= 0; i--) {
+                const car = trafficCars[i];
+                if (car.position.z < bikeMesh.position.z - 20) {
+                    scene.remove(car);
+                    trafficCars.splice(i, 1);
                     continue;
                 }
-
-                if (o.y > canvas.height) {
-                    obstacles.splice(i, 1);
+                const dist = bikeMesh.position.distanceTo(car.position);
+                if (dist < 2.0) {
+                    gameOver();
                 }
             }
 
-            // HUD update
-            document.getElementById('hud-score').innerText = score;
+            // Coin collection
+            for (let i = coinObjects.length - 1; i >= 0; i--) {
+                const coin = coinObjects[i];
+                if (coin.position.z < bikeMesh.position.z - 10) {
+                    scene.remove(coin);
+                    coinObjects.splice(i, 1);
+                    continue;
+                }
+                if (bikeMesh.position.distanceTo(coin.position) < 1.8) {
+                    coinsCollected += 1;
+                    scene.remove(coin);
+                    coinObjects.splice(i, 1);
+                }
+            }
+
+            // Update HUD UI
+            document.getElementById('hud-speed').innerText = Math.floor(speedKMH) + ' KM/H';
             document.getElementById('hud-distance').innerText = distance + 'm';
-            document.getElementById('hud-combo').innerText = combo + 'x';
-            document.getElementById('hud-coins').innerText = '🪙 ' + coins;
-            document.getElementById('hud-nitro').style.width = nitro + '%';
+            document.getElementById('hud-coins').innerText = '🪙 ' + coinsCollected;
+            document.getElementById('nitro-bar').style.width = nitroVal + '%';
+            document.getElementById('fuel-bar').style.width = Math.max(0, fuelVal) + '%';
+
+            if (fuelVal <= 0) gameOver();
         }
 
-        function drawGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Road background
-            ctx.fillStyle = '#0f0b1f';
-            ctx.fillRect(30, 0, canvas.width - 60, canvas.height);
-
-            // Road borders
-            ctx.strokeStyle = '#8B5CFF';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(30, 0); ctx.lineTo(30, canvas.height);
-            ctx.moveTo(canvas.width - 30, 0); ctx.lineTo(canvas.width - 30, canvas.height);
-            ctx.stroke();
-
-            // Center lane markings
-            ctx.strokeStyle = '#C5FF3D';
-            ctx.lineWidth = 3;
-            ctx.setLineDash([20, 20]);
-            ctx.lineDashOffset = -roadOffset;
-            ctx.beginPath();
-            ctx.moveTo(canvas.width / 2, 0); ctx.lineTo(canvas.width / 2, canvas.height);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Obstacles & Coins
-            obstacles.forEach(o => {
-                if (o.type === 'coin') {
-                    ctx.fillStyle = '#C5FF3D';
-                    ctx.beginPath();
-                    ctx.arc(o.x + 21, o.y + 21, 10, 0, Math.PI * 2);
-                    ctx.fill();
-                } else {
-                    ctx.fillStyle = '#ff3366';
-                    ctx.fillRect(o.x, o.y, o.width, o.height);
-                }
-            });
-
-            // Render Bike
-            ctx.save();
-            ctx.translate(bike.x + bike.width / 2, bike.y + bike.height / 2);
-            ctx.rotate(bike.angle);
-            if (imageLoaded) {
-                ctx.drawImage(bikeImg, -bike.width / 2, -bike.height / 2, bike.width, bike.height);
-            } else {
-                ctx.fillStyle = '#C5FF3D';
-                ctx.fillRect(-bike.width / 2, -bike.height / 2, bike.width, bike.height);
-            }
-            ctx.restore();
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('go-distance').innerText = distance + 'm';
+            document.getElementById('go-coins').innerText = coinsCollected;
+            document.getElementById('gameover-overlay').style.display = 'flex';
         }
 
-        function gameLoop() {
-            if (!gameActive) return;
+        function animate() {
+            requestAnimationFrame(animate);
             updateGame();
-            drawGame();
-            requestAnimationFrame(gameLoop);
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
         }
+
+        window.onload = () => {
+            init3D();
+            animate();
+        };
     </script>
 </body>
 </html>
