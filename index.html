@@ -232,12 +232,12 @@
                 if (e.code === 'Space') isNitroActive = false;
             });
 
-            // Direct Screen Touch & Mouse Drag Steering
+            // Direct Screen Touch & Mouse Drag Steering (ইনভার্স ডিরেকশন ঠিক করা হয়েছে)
             const updateTouchCoordinates = (clientX) => {
                 const rect = container.getBoundingClientRect();
                 const xPos = clientX - rect.left;
-                const normX = (xPos / rect.width) * 2 - 1; // ranges from -1 (left) to 1 (right)
-                touchTargetX = normX * 6.5; // map to road width limits
+                const normX = -((xPos / rect.width) * 2 - 1); // মাইনাস (-) দিয়ে ডিরেকশন ঠিক করা হয়েছে
+                touchTargetX = normX * 6.5; 
             };
 
             container.addEventListener('pointerdown', e => {
@@ -350,14 +350,13 @@
 
             // Collision check with traffic
             for (let i = trafficCars.length - 1; i >= 0; i--) {
-                const car = trafficCars[i];
-                if (car.position.z < bikeMesh.position.z - 20) {
+                const car = trafficCars.I;
+                if (car && car.position.z < bikeMesh.position.z - 20) {
                     scene.remove(car);
                     trafficCars.splice(i, 1);
                     continue;
                 }
-                const dist = bikeMesh.position.distanceTo(car.position);
-                if (dist < 2.0) {
+                if (car && bikeMesh.position.distanceTo(car.position) < 2.0) {
                     gameOver();
                 }
             }
@@ -365,12 +364,12 @@
             // Coin collection
             for (let i = coinObjects.length - 1; i >= 0; i--) {
                 const coin = coinObjects[i];
-                if (coin.position.z < bikeMesh.position.z - 10) {
+                if (coin && coin.position.z < bikeMesh.position.z - 10) {
                     scene.remove(coin);
                     coinObjects.splice(i, 1);
                     continue;
                 }
-                if (bikeMesh.position.distanceTo(coin.position) < 1.8) {
+                if (coin && bikeMesh.position.distanceTo(coin.position) < 1.8) {
                     coinsCollected += 1;
                     scene.remove(coin);
                     coinObjects.splice(i, 1);
