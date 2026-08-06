@@ -149,6 +149,7 @@
         let isTouching = false;
         let lastTapTime = 0;
         let isNitroActive = false;
+        let lastClientX = 0;
 
         let input = { left: false, right: false };
 
@@ -232,17 +233,11 @@
                 if (e.code === 'Space') isNitroActive = false;
             });
 
-            // Direct Screen Touch & Mouse Drag Steering (সঠিক ডিরেকশন: ডানে সোয়াইপ করলে ডানে যাবে, বামে সোয়াইপ করলে বামে যাবে)
-            const updateTouchCoordinates = (clientX) => {
-                const rect = container.getBoundingClientRect();
-                const xPos = clientX - rect.left;
-                const normX = (xPos / rect.width) * 2 - 1; // পজিটিভ (+) রেখে ডিরেকশন স্বাভাবিক করা হয়েছে
-                touchTargetX = normX * 6.5; 
-            };
-
+            // Relative Swipe/Drag Steering (ডানে সোয়াইপ করলে বাইক ডানে যাবে, বামে সোয়াইপ করলে বামে যাবে)
             container.addEventListener('pointerdown', e => {
                 isTouching = true;
-                updateTouchCoordinates(e.clientX);
+                lastClientX = e.clientX;
+                if (bikeMesh) touchTargetX = bikeMesh.position.x;
 
                 // Double tap detection for Nitro burst
                 const currentTime = new Date().getTime();
@@ -258,7 +253,12 @@
 
             container.addEventListener('pointermove', e => {
                 if (!isTouching) return;
-                updateTouchCoordinates(e.clientX);
+                const deltaX = e.clientX - lastClientX;
+                lastClientX = e.clientX;
+
+                // ড্রাগ ডিরেকশন অনুযায়ী পজিশন আপডেট (ডানে টানলে ডানে, বামে টানলে বামে)
+                touchTargetX += deltaX * 0.03;
+                touchTargetX = Math.max(-6.5, Math.min(6.5, touchTargetX));
             });
 
             const endTouch = () => {
@@ -331,7 +331,7 @@
 
             // Direct touch positioning interpolation or keyboard override
             if (isTouching) {
-                bikeMesh.position.x += (touchTargetX - bikeMesh.position.x) * 0.15;
+                bikeMesh.position.x += (touchTargetX - bikeMesh.position.x) * 0.2;
             } else if (input.left && bikeMesh.position.x > -6.5) {
                 bikeMesh.position.x -= 0.15;
             } else if (input.right && bikeMesh.position.x < 6.5) {
